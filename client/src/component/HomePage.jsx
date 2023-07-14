@@ -9,6 +9,8 @@ import ChatCard from "./ChatCard/ChatCard";
 import MessageCard from "./MessageCard/MessageCard";
 import Profile from "./ProfileNew/Profile";
 import { useNavigate } from "react-router-dom";
+import {Menu , MenuItem } from "@mui/material";
+import CreateGroup from "./CreateGroup/CreateGroup";
 
 
 
@@ -18,12 +20,24 @@ const HomePage = () => {
   const [currentChat, setCurrentChat] = useState(null);
   const[content,setContent] = useState("");
   const[isProfile , setIsProfile] = useState(false);
+  const [anchorE1 , setAncchorE1] = useState(null);
+  const open = Boolean(anchorE1);
+  const [isGroup , setIsGroup] = useState(false)
+  const handleClick = (e)=> {
+    setAncchorE1(e.currentTarget);
+  }
+  const handleClose = ()=> {
+    setAncchorE1(null);
+  }
   const handleClickOnChatCard = () => [setCurrentChat(true)];
   const handleSearch = () => {};
   const handleCreateNewMessage = () => {};
   const handleNavigate = () => {setIsProfile(true)};
   const handleOpenCloseProfile = ()=> {
     setIsProfile(false)
+  }
+  const handleCreteGroup = ()=> {
+    setIsGroup(true);
   }
   function handleNavigateStatus() {
     navigate("/status");
@@ -34,9 +48,10 @@ const HomePage = () => {
       <div className="flex bg-[@fof2f5] h-[95vh] w-[96vw] absolute top-[5vh] left-[2vw]">
         <div className="left w-[30%] bg-[#e8e9ec] h-full">
           {/* profile */}
+          {isGroup && <CreateGroup/>}
           {isProfile && <div className="w-full h-full"><Profile handleOpenCloseProfile={handleOpenCloseProfile}/></div>}
            {/* home */}
-          {!isProfile && <div className="w-full">
+          {!isProfile && !isGroup && <div className="w-full">
             <div className="flex justify-between items-center p-3">
               <div onClick={handleNavigate} className="flex items-center space-x-3">
                 <img
@@ -49,6 +64,26 @@ const HomePage = () => {
               <div className="space-x-3 text-2xl flex">
                 <TbCircleDashed className="cursor-pointer" onClick={handleNavigateStatus}/>
                 <BiCommentDetail />
+                <div>
+                <BsThreeDotsVertical  id = "basic-button"
+                aria-controls={open ? 'basic-menu':undefined}
+                aria-haspopup="true"
+                aria-expanded={open ? 'true' : undefined}
+                onClick={handleClick}
+                />
+                <Menu id="basic-menu"
+                anchorE1={anchorE1}
+                open={open}
+                onClose={handleClose}
+                MenuListProps = {{
+                  'aria-labelledby':'basic-button',
+                }}
+                >
+                  <MenuItem onClick={handleClose}>Profile</MenuItem>
+                  <MenuItem onClick={handleCreteGroup}>Create Group</MenuItem>
+                  <MenuItem onClick={handleClose}>logout</MenuItem>
+                  </Menu> 
+                </div>
               </div>
             </div>
             <div className="relative flex justify-center items-center bg-white py-4 px-3">
