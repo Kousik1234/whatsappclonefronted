@@ -20,6 +20,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { currentUser, logOutAction, searchUser } from "../Redux/Auth/Action";
 import { createChat, getUsersChat } from "../Redux/Chat/Action";
 import { createMessage, getAllMessages } from "../Redux/Message/Action";
+import SockJS from "sockjs-client";
+import Stomp from "stompjs";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -33,6 +35,72 @@ const HomePage = () => {
   const dispatch = useDispatch();
   const { auth, chat, message } = useSelector((store) => store);
   const token = localStorage.getItem("token");
+  const [stompClient, setStompClient] = useState();
+  const [isConnect, setIsConnect] = useState(false);
+  const [messages, setMessages] = useState([]);
+
+  const connect = () => {
+    const sock = new SockJS("http://localhost:8080/ws");
+    const temp = Stomp.over(sock);
+    setStompClient(temp);
+    setIsConnect(true);
+
+    // const headers = {
+    //   Authorization: `Token ${token}`,
+    //   "X-XSRF-TOKEN": getCookie("XSRF-TOKEN")
+    // };
+    // temp.connect(headers, onConnect, onError);
+    temp.connect(onConnect, onError);
+  };
+
+  // function getCookie(name) {
+  //   const value = `;${document.cookie}`;
+  //   const parts = value.split(`;${name}=`);
+  //   if (parts.lenght === 2) {
+  //     return parts.pop().split(";").shift();
+  //   }
+  // }
+
+  const onError = (error) => {
+    console.log("NoError", error);
+  };
+  const onConnect = () => {
+    setIsConnect(true);
+  };
+
+  useEffect(() => {
+    if (message.newMessage && stompClient) {
+      setMessages([...messages, message.newMessage]);
+      stompClient?.send("/app/message", {}, JSON.stringify(message.newMessage));
+    }
+  }, [message.newMessage]);
+
+  useEffect(() => {
+    setMessages(message.messages);
+  }, [message.messages]);
+
+  const onMessageRevice = (payload) => {
+    const recievedMessage = JSON.parse(payload.body);
+    setMessages([...messages, recievedMessage]);
+  };
+
+  useEffect(() => {
+    if (isConnect && stompClient && auth.reqUser && currentChat) {
+      const subscription = stompClient.subscribe(
+        "/group/" + currentChat.id.toString(),
+        onMessageRevice
+      );
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  });
+
+  useEffect(() => {
+    connect();
+  }, []);
+
   const handleClick = (e) => {
     setAncchorE1(e.currentTarget);
   };
@@ -59,11 +127,11 @@ const HomePage = () => {
     dispatch(getUsersChat(token));
   }, [chat.createdChat, chat.createdGroup]);
 
-  useEffect(()=> {
-    if(currentChat?.id){
-      dispatch(getAllMessages({chatId:currentChat.id,jwt:token}))
+  useEffect(() => {
+    if (currentChat?.id) {
+      dispatch(getAllMessages({ chatId: currentChat.id, jwt: token }));
     }
-  },[currentChat,message.newMessage])
+  }, [currentChat, message.newMessage]);
   const handleClickOnChatCard = (userId) => {
     //setCurrentChat(true)
     dispatch(createChat(token, userId));
@@ -73,7 +141,12 @@ const HomePage = () => {
     dispatch(searchUser(emailOrname));
   };
   const handleCreateNewMessage = () => {
-    dispatch(createMessage({jwt:token,data:{chatId:currentChat.id,content:content}}))
+    dispatch(
+      createMessage({
+        jwt: token,
+        data: { chatId: currentChat.id, content: content },
+      })
+    );
   };
   const handleNavigate = () => {
     setIsProfile(true);
@@ -112,7 +185,10 @@ const HomePage = () => {
                 >
                   <img
                     className="rounded-full w-10 h-10 cursor-pointer"
-                    src="https://cdn.pixabay.com/photo/2023/06/21/09/52/pied-flycatcher-8078925_1280.jpg"
+                    src={
+                      auth.reqUser?.profile_picture ||
+                      "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                    }
                     alt=""
                   />
                   <p>{auth.reqUser?.fullname}</p>
@@ -275,12 +351,13 @@ const HomePage = () => {
             {/* message section */}
             <div className="px-13 py-2 h-[85vh] overflow-y-scroll bg-blue-200">
               <div className="space-y-1 flex flex-col justify-center border mt-20 py-2">
-                {message.messages.length>0 && message.messages.map((item, i) => (
-                  <MessageCard
-                    isReqUserMessage={item.user.id!==auth.reqUser.id}
-                    content={item.content}
-                  />
-                ))}
+                {messages.length > 0 &&
+                  messages.map((item, i) => (
+                    <MessageCard
+                      isReqUserMessage={item.user.id !== auth.reqUser.id}
+                      content={item.content}
+                    />
+                  ))}
               </div>
             </div>
             {/* fotter part */}

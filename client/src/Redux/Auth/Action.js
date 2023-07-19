@@ -76,20 +76,20 @@ export const searchUser = (emailOrname)=>async(dispatch)=> {
 }
 
 
-export const updateUser = (jwt, userDto) => async (dispatch) => {
+export const updateUser = (data1) => async (dispatch) => {
     try {
-      const res = await fetch(`${BASE_API_URL}/api/v1/update/user?jwt=${jwt}`, {
+      const res = await fetch(`${BASE_API_URL}/api/v1/update/user?jwt=${data1.token}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(userDto),
+        body: JSON.stringify(data1.data),
       });
       const resData = await res.json();
       console.log("register", resData);
       dispatch({ type: UPDATE_USER, payload: resData });
     } catch (error) {
-      alert("error ", error);
+      alert("update user error ", error);
     }
   };
 

@@ -1,19 +1,60 @@
 import React, { useState } from "react";
 import { BsArrowLeft, BsCheck2, BsPencil } from "react-icons/bs";
-import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { updateUser } from "../../Redux/Auth/Action";
 
 const Profile = ({handleOpenCloseProfile}) => {
   const [flag,setFlag] = useState(false);
   const [username , setUsername] = useState();
+  const [tempPicture , setTempPicture] = useState();
+  const dispatch = useDispatch();
+  const {auth} = useSelector((store) => store)
 
   const handleFlag = ()=> {
     setFlag(true);
   }
   const handleCheckClick = ()=> {
     setFlag(false);
+    const data1 = {
+      token:localStorage.getItem("token"),
+      data: {id:auth.reqUser.id,fullname:username}
+    }
+    dispatch(updateUser(data1))
   }
   const handleSetUsername = (e)=> {
     setUsername(e.target.value);
+  }
+
+  const handleUpdateName =(e)=> {
+    const data1 = {
+       token:localStorage.getItem("token"),
+       data: {id:auth.reqUser.id,fullname:username}
+     }
+    if(e.target.key==="Enter") {
+      dispatch(updateUser(data1))
+    }
+  }
+
+  const uploadToCloudnary = (pics)=> {
+    const data = new FormData();
+    data.append("file",pics);
+    data.append("upload_preset","whatsapp");
+    data.append("cloud_name","dpzgjso8w");
+    fetch("https://api.cloudinary.com/v1_1/dpzgjso8w/image/upload",{
+      method:"post",
+      body:data,
+    })
+    .then((res)=>res.json())
+    .then((data)=>{
+      setTempPicture(data.url.toString());
+      console.log("imgurl" , data.url.toString());
+      const data1 = {
+       // id: auth.reqUser.id,
+        token:localStorage.getItem("token"),
+        data: {id:auth.reqUser.id,profile_picture:data.url.toString()}
+      }
+      dispatch(updateUser(data1));
+    })
   }
   return (
     <div className="w-full h-full">
@@ -29,11 +70,11 @@ const Profile = ({handleOpenCloseProfile}) => {
         <label htmlFor="imgInput">
           <img
             className="rounded-full w-[15vw] h-[15vw] cursor-pointer"
-            src="https://cdn.pixabay.com/photo/2023/06/21/09/52/pied-flycatcher-8078925_1280.jpg"
+            src={auth.reqUser?.profile_picture || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
             alt=""
           />
         </label>
-        <input type="file" id="imgInput" className="hidden" />
+        <input onChange={(e)=>uploadToCloudnary(e.target.files[0])} type="file" id="imgInput" className="hidden" />
       </div>
       {/* name section */}
       <div className="bg-white px-3">
@@ -45,7 +86,7 @@ const Profile = ({handleOpenCloseProfile}) => {
 
 {
   flag && <div className="w-fll flex justify-between items-center py-2">
-    <input onChange={handleSetUsername} className="w-[80%] outline-none border-b-2 border-blue-700 p-2" type="text" placeholder="Enter Your Name"/>
+    <input onKeyPress={handleUpdateName} onChange={handleSetUsername} className="w-[80%] outline-none border-b-2 border-blue-700 p-2" type="text" placeholder="Enter Your Name"/>
     <BsCheck2 onClick={handleCheckClick} className="cursor-pointer text-2xl"/>
   </div>
 }
